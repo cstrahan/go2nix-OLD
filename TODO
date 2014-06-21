@@ -1,0 +1,19 @@
+* Write utility to recursively `go get` repositories, setting the revisions back
+  to a specified date before recursing.
+* Use godep to then dump all revisions to a Godeps.json file.
+* New utility to take a Godeps.json file and generate a nix experssion that
+  bundles all deps, setting $GOPATH appropriately, and invoking `go install`.
+* Add new packages to Nixpkgs :)
+
+  src = fetchFromGitHub {
+    owner = "b4winckler";
+    repo = "macvim";
+    rev = "snapshot-73";
+    sha256 = "0zv82y2wz8b482khkgbl08cnxq3pv5bm37c71wgfa0fzy3h12gcj";
+  };
+
+
+----------------
+
+
+add 'deps' field.

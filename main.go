@@ -4,10 +4,13 @@ import (
   "bytes"
   "code.google.com/p/go.tools/go/vcs"
   "encoding/json"
+  "flag"
   "fmt"
+  "io/ioutil"
   "os"
   "os/exec"
   "path/filepath"
+  "regexp"
   "strings"
   "time"
 )
@@ -16,18 +19,92 @@ const (
   bzrDateFormat = "Mon 2006-01-02 15:04:05 -0700"
 )
 
-func main() {
-  dir := os.Args[1]
-  dir, _ = filepath.Abs(dir)
-  os.MkdirAll(dir, 0700)
+// 2008-09-08T15:47:31Z
+var (
+  pkgFlag   = flag.String("pkg", "", "the package to fetch")
+  outFlag   = flag.String("out", "deps.json", "the path to dump the dependencies to")
+  inFlag    = flag.String("in", "", "the dumped dependencies to create a nix expression from")
+  untilFlag = flag.String("until", "", "the date/time in RFC3338 format")
+)
 
-  until, _ := time.Parse(time.RFC3339Nano, "2014-06-13T16:26:28+00:00")
-  init := "github.com/mitchellh/packer"
-  revs := goGetAll(dir, until, []string{init})
-  println(toJson(revs))
+func main() {
+  flag.Parse()
+
+  // println(githubHash("mitchellh", "cli", "df3e8ad8d1c"))
+  // os.Exit(0)
+  if *inFlag == "" {
+    gopath := "dump"
+    gopath, _ = filepath.Abs(gopath)
+    os.MkdirAll(gopath, 0700)
+    until, _ := time.Parse(time.RFC3339Nano, *untilFlag)
+    println("-----------------")
+    println(toJson(*untilFlag))
+    println(toJson(*pkgFlag))
+    println(toJson(*outFlag))
+    println(toJson(until))
+    println("-----------------")
+    pkg := *pkgFlag
+    outPath := *outFlag
+
+    do_dump(gopath, until, pkg, outPath)
+  } else {
+    inPath := *inFlag
+    outPath := *outFlag
+
+    do_nix(inPath, outPath)
+  }
 }
 
-func goGetAll(dir string, until time.Time, imports []string) []Revision {
+func do_dump(dir string, until time.Time, pkg string, outPath string) {
+  // println(dir)
+  // println(toJson(until))
+  // println(toJson(pkg))
+  revs := goGetAll(dir, until, []string{pkg})
+  println("**A")
+  json := toJson(revs)
+  ioutil.WriteFile(outPath, []byte(json), 0644)
+  fmt.Fprint(os.Stdout, json)
+}
+
+//  git = desc: fetchgit { url = "https://${desc.dir}/${desc.name}";
+//                         inherit (desc) rev sha256; };
+//  hg = desc: fetchhg { url = "https://${desc.dir}/${desc.name}";
+//                       tag = desc.rev;
+//                       inherit (desc) sha256; };
+
+//  src = fetchbzr {
+//    url = "https://code.launchpad.net/~kicad-stable-committers/kicad/stable";
+//    revision = 4024;
+//    sha256 = "1sv1l2zpbn6439ccz50p05hvqg6j551aqra551wck9h3929ghly5";
+//  };
+func do_nix(inPath string, outPath string) {
+  jsonStr, _ := ioutil.ReadFile(inPath)
+  deps := make([]Revision, 0)
+  json.Unmarshal(jsonStr, deps)
+  println(toJson(deps))
+}
+
+func githubHash(owner string, repo string, rev string) string {
+  tmpPath := "temp.nix"
+  kvs := map[string]string{"owner": owner, "repo": repo, "rev": rev}
+  nixExpr := expand(kvs, `
+    (import <nixpkgs> { }).fetchFromGitHub {
+      owner = "{owner}";
+      repo = "{repo}";
+      rev = "{rev}";
+      sha256 = "0000000000000000000000000000000000000000000000000000";
+    }
+  `)
+  ioutil.WriteFile(tmpPath, []byte(nixExpr), 0644)
+
+  pwd, _ := os.Getwd()
+  stderr, _ := sh(pwd, "nix-build "+tmpPath+" 2>&1 1>/dev/null || true", true)
+  regexp := regexp.MustCompile("instead has `([^']+)'")
+  hash := regexp.FindStringSubmatch(stderr)[1]
+  return hash
+}
+
+func goGetAll(gopath string, until time.Time, imports []string) []Revision {
   revs := make([]Revision, 0)
   for _, importPath := range imports {
     if isStandard(importPath) {
@@ -39,33 +116,50 @@ func goGetAll(dir string, until time.Time, imports []string) []Revision {
       continue
     }
 
-    if !isDir(dir + "/src/" + repo.Root) {
+    if !isDir(gopath + "/src/" + repo.Root) {
       println(repo.Root)
 
       // fetch source
       cmd := exec.Command("go", "get", importPath)
-      cmd.Env = append(envNoGopath(), "GOPATH="+dir)
-      cmd.Dir = dir
+      cmd.Env = append(envNoGopath(), "GOPATH="+gopath)
+      cmd.Dir = gopath
       err := cmd.Run()
       _ = err
 
       // find revision
-      rev := findRevision(repo.VCS.Cmd, dir+"/src/"+repo.Root, until)
+      rev := findRevision(repo.VCS.Cmd, gopath+"/src/"+repo.Root, until)
 
       // set revision back
-      sh(dir+"/src/"+repo.Root, substTag(repo.VCS.Cmd+" "+repo.VCS.TagSyncCmd, rev), true)
+      sh(gopath+"/src/"+repo.Root, substTag(repo.VCS.Cmd+" "+repo.VCS.TagSyncCmd, rev), true)
 
       // recurse
-      pkgs, _ := loadPackages(dir, repo.Root+"...")
+      pkgs, _ := loadPackages(gopath, repo.Root+"...")
       newImports := allImports(pkgs)
       // printJson(newImports)
-      newRevs := goGetAll(dir, until, newImports)
+      newRevs := goGetAll(gopath, until, newImports)
       revs = append(revs, newRevs...)
-      revs = append(revs, Revision{root: repo.Root, rev: rev})
+      revs = append(revs, Revision{Root: repo.Root, Rev: rev, VCS: repo.VCS.Cmd, Deps: depsFromImports(newImports)})
     }
   }
 
   return revs
+}
+
+func depsFromImports(imports []string) []string {
+  all := make([]string, 0)
+  for _, imp := range imports {
+    if !isStandard(imp) {
+      repo, _ := vcs.RepoRootForImportPath(imp, true)
+      if repo == nil {
+        println("NULL IMPORT")
+        println(imp)
+      } else {
+        all = append(all, repo.Root)
+      }
+    }
+  }
+
+  return uniqueStrings(all)
 }
 
 func isDir(path string) bool {
@@ -74,6 +168,20 @@ func isDir(path string) bool {
   }
 
   return false
+}
+
+func uniqueStrings(strs []string) []string {
+  set := make(map[string]bool)
+  for _, str := range strs {
+    set[str] = true
+  }
+
+  unique := make([]string, 0)
+  for str, _ := range set {
+    unique = append(unique, str)
+  }
+
+  return unique
 }
 
 func findRevision(cmd string, dir string, until time.Time) string {
@@ -94,9 +202,12 @@ func findRevision(cmd string, dir string, until time.Time) string {
   return trim(rev)
 }
 
+// This is fucking ridiculous.
 type Revision struct {
-  root string
-  rev  string
+  Root string
+  Rev  string
+  VCS  string
+  Deps []string // Root names
 }
 
 func envNoGopath() (a []string) {
