@@ -71,22 +71,21 @@ module Go2nix
       new.render(revisions)
     end
 
+    private
+
     def render(revisions)
       template = File.open(TEMPLATE_PATH, &:read)
       renderer = Erubis::Eruby.new(template)
       renderer.result(binding)
     end
 
-    private
-
-    # use repo?
     def sha256(rev)
       if rev.root.start_with?("github.com")
-        Nix.github_hash(owner(rev), repo(rev), rev.rev)
+        Nix.prefetch_github(owner(rev), repo(rev), rev.rev)
       elsif rev.vcs == "hg"
-        Nix.hg_hash("http://"+rev.root, rev.rev)
+        Nix.prefetch_hg("http://"+rev.root, rev.rev)
       elsif rev.vcs == "bzr"
-        Nix.bzr_hash("http://code."+rev.root, rev.rev)
+        Nix.prefetch_bzr("http://code."+rev.root, rev.rev)
       end
     end
 

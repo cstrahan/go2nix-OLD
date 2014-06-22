@@ -14,7 +14,7 @@ let
       };
       <% elsif revision.vcs == "git" %>
       src = fetchgit {
-        url = git://<% revision.root %>.git;
+        url = "git://<% revision.root %>.git";
         rev = "<%= revision.rev %>";
         sha256 = "<%= sha256(revision) %>";
       };
