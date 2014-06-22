@@ -30,6 +30,11 @@ module Go2nix
           `git checkout #{tag.shellescape} >/dev/null 2>&1`
         end
       end
+
+      def self.revision_date(dir, target_rev = current_rev(dir))
+        date = `git log  -p #{rev.shellescape} -n1 --format="%ad" --date=iso`.chomp
+        DateTime.iso8601(date)
+      end
     end
 
     module Mercurial
@@ -56,6 +61,11 @@ module Go2nix
           `hg update -r #{tag.shellescape} >/dev/null 2>&1`
         end
       end
+
+      def self.revision_date(dir, target_rev = current_rev(dir))
+        date = `hg log -r #{range.shellescape} --template '{date|isodate}\n' --limit 1`.chomp
+        DateTime.iso8601(date)
+      end
     end
 
     module Bazaar
@@ -66,23 +76,12 @@ module Go2nix
       end
 
       def self.find_revision(dir, til)
-        rev = nil
-
-        lines = Dir.chdir(dir) do
-          `bzr log --log-format=long`.split("\n")
+        log = revision_log(dir)
+        log.each do |rev, date|
+          return rev if date <= til
         end
 
-        lines.each do |line|
-          if line.start_with?("revno: ")
-            rev = line.split(" ")[1]
-          elsif line.start_with?("timestamp: ")
-            date = line.split(" ", 2).last
-            date = DateTime.strptime(date, DATE_FORMAT)
-            break if date < til
-          end
-        end
-
-        rev
+        nil
       end
 
       def self.current_rev(dir)
@@ -96,6 +95,37 @@ module Go2nix
           `bzr update -r #{tag.shellescape} >/dev/null 2>&1`
         end
       end
+
+      def self.revision_date(dir, target_rev = current_rev(dir))
+        log = revision_log(dir)
+        rev_date = log.detect { |rev, date| rev == target_rev }
+        rev_date[1]
+      end
+
+      private
+
+      def self.revision_log(dir)
+        rev_date = nil
+        log = []
+
+        lines = Dir.chdir(dir) do
+          `bzr log --log-format=long`.split("\n")
+        end
+
+        lines.each do |line|
+          if line.start_with?("revno: ")
+            rev_date = [ line.split(" ")[1], nil ]
+          elsif line.start_with?("timestamp: ")
+            date = line.split(" ", 2).last
+            date = DateTime.strptime(date, DATE_FORMAT)
+            rev_date[1] = date
+            log << rev_date
+          end
+        end
+
+        log
+      end
+
     end
   end
 end
