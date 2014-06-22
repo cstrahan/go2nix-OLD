@@ -5,9 +5,9 @@ require 'go2nix/vcs'
 module Go2nix
   def self.snapshot(gopath, til, imports, revs=[])
     imports.each do |import|
-      next if Go2nix::Go::Package.standard?(import)
+      next if Go::Package.standard?(import)
 
-      repo_root = Go2nix::Go::RepoRoot.from_import(import) rescue nil
+      repo_root = Go::RepoRoot.from_import(import) rescue nil
       vcs = repo_root.vcs
       root = repo_root.root
       src = File.join(gopath, "src", root)
@@ -20,16 +20,16 @@ module Go2nix
       if til.nil?
         rev = vcs.current_rev(src)
       else
-        rev = repo_root.vcs.find_revision(src, til)
+        rev = vcs.find_revision(src, til)
         vcs.tag_sync(src, rev)
       end
 
-      pkgs = Go2nix::Go::Package.from_import(gopath, "#{root}...")
-      new_imports = Go2nix::Go::Package.all_imports(pkgs)
+      pkgs = Go::Package.from_import(gopath, "#{root}...")
+      new_imports = Go::Package.all_imports(pkgs)
       deps = deps_from_imports(new_imports)
       deps.delete(root)
 
-      revs << Go2nix::Revision.new(
+      revs << Revision.new(
         :root => root,
         :rev => rev,
         :vcs => vcs.cmd,
@@ -50,6 +50,6 @@ module Go2nix
       deps << repo_root.root
     end
 
-    deps.uniq.sort
+    deps.uniq!.sort!
   end
 end
