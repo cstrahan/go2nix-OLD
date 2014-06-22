@@ -32,6 +32,7 @@ module Go2nix
     end
 
     class Package
+      attr_reader :doc
       attr_reader :dir
       attr_reader :root
       attr_reader :import_path
@@ -45,6 +46,8 @@ module Go2nix
       attr_reader :xtest_imports
 
       ATTR_MAPPINGS = %w{
+        doc              Doc
+
         dir              Dir
         root             Root
         import_path      ImportPath
@@ -75,7 +78,6 @@ module Go2nix
       def self.from_import(gopath, import)
         json = `GOPATH=#{gopath.shellescape} go list -e -json #{import.shellescape}`
         json = StringIO.new(json)
-        # json = JSON.parse(json)
 
         all = []
         Yajl::Parser.parse(json) do |obj|
@@ -113,15 +115,6 @@ module Go2nix
           all.concat(pkg.test_imports)
           all.concat(pkg.xtest_imports)
         end
-        all.uniq!
-        all.sort!
-      end
-
-      def all_imports
-        all = []
-        all.concat(deps)
-        all.concat(test_imports)
-        all.concat(xtest_imports)
         all.uniq!
         all.sort!
       end

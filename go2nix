@@ -5,14 +5,25 @@ require 'go2nix'
 require 'json'
 
 require 'fileutils'
-FileUtils.mkdir("dump")
+# FileUtils.mkdir("dump")
 # run
-# til = DateTime.iso8601("2014-05-03T00:00:00Z")
-til = nil
-# pkg = ["github.com/mitchellh/packer"]
+
+til = DateTime.iso8601("2014-05-03T00:00:00Z")
+# til = nil
+
+pkg = ["github.com/mitchellh/packer"]
+# pkg = ["code.google.com/p/gosshold"]
 # pkg = ["code.google.com/p/google-api-go-client"]
-pkg = ["launchpad.net/tomb"]
-revs = Go2nix.snapshot("dump", til, pkg)
-revs = revs.map(&:as_json)
-json = JSON.pretty_generate(revs)
-puts json
+# pkg = ["launchpad.net/tomb"]
+# revs = Go2nix.snapshot("dump", til, pkg)
+# revs = revs.map(&:as_json)
+# json = JSON.pretty_generate(revs)
+# puts json
+
+
+# -----------------
+
+json = File.open("dump.json", &:read)
+json = JSON.parse(json, :symbolize_names => true)
+revs = json.map {|j| Go2nix::Revision.new(j)}
+puts Go2nix.render_nix(revs)

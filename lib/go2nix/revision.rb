@@ -7,6 +7,8 @@ module Go2nix
 
     def initialize(attrs)
       @root = attrs[:root]
+      @repo = attrs[:repo]
+      @doc  = attrs[:doc]
       @rev  = attrs[:rev]
       @vcs  = attrs[:vcs]
       @deps = attrs[:deps]
@@ -15,6 +17,8 @@ module Go2nix
     def as_json
       {
         :root => @root,
+        :repo => @repo,
+        :doc  => @doc,
         :rev  => @rev,
         :vcs  => @vcs,
         :deps => @deps

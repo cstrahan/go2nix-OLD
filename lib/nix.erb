@@ -1,0 +1,49 @@
+{ stdenv, fetchurl, fetchgit, fetchhg, fetchFromGitHub, go, lib }:
+
+let
+  goDeps = [
+    <% revisions.each do |revision| %>
+    {
+      root = "<%= revision.root %>";
+      <% if revision.root.start_with?("github.com") %>
+      src = fetchFromGitHub {
+        owner = "<%= owner(revision) %>";
+        repo = "<%= repo(revision) %>";
+        rev = "<%= revision.rev %>";
+        sha256 = "<%= sha256(revision) %>";
+      };
+      <% elsif revision.vcs == "git" %>
+      src = fetchgit {
+        url = git://<% revision.root %>.git;
+        rev = "<%= revision.rev %>";
+        sha256 = "<%= sha256(revision) %>";
+      };
+      <% elsif revision.vcs == "hg" %>
+      src = fetchhg {
+        url = "http://<%= revision.root %>";
+        tag = "<%= revision.rev %>";
+        sha256 = "<%= sha256(revision) %>";
+      };
+      <% elsif revision.vcs == "bzr" %>
+      src = fetchbzr {
+        url = "https://<%= revision.root %>";
+        revision = "<%= revision.rev %>";
+        sha256 = "<%= sha256(revision) %>";
+      };
+      <% end %>
+    }
+    <% end %>
+  ];
+
+in
+
+stdenv.mkDerivation rec {
+  name = "go-deps";
+
+  buildCommand = 
+    lib.concatStrings
+      (map (dep: ''
+              mkdir -p $out/src/`dirname ${dep.root}`
+              ln -s ${dep.src} $out/src/${dep.root}
+            '') goDeps);
+}
