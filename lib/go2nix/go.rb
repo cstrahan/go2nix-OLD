@@ -1,5 +1,6 @@
 require 'yajl'
 require 'stringio'
+require 'tmpdir'
 
 module Go2nix
   module Go
@@ -73,6 +74,16 @@ module Go2nix
         @test_imports     = []
         @xtest_go_files   = []
         @xtest_imports    = []
+      end
+
+      def self.date_of_revision(import, revision)
+        Dir.mktmpdir do |dir|
+          system "GOPATH=#{dir.shellescape} go get #{import.shellescape} 2>/dev/null"
+          repo_root = RepoRoot.from_import(import)
+
+          src = File.join(dir, "src", repo_root.root)
+          repo_root.vcs.revision_date(src)
+        end
       end
 
       def self.from_import(gopath, import)

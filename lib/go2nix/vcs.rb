@@ -32,8 +32,10 @@ module Go2nix
       end
 
       def self.revision_date(dir, target_rev = current_rev(dir))
-        date = `git log  -p #{rev.shellescape} -n1 --format="%ad" --date=iso`.chomp
-        DateTime.iso8601(date)
+        Dir.chdir(dir) do
+          date = `git log #{target_rev.shellescape} -n1 --format="%ad" --date=iso`.chomp
+          DateTime.strptime(date, "%Y-%m-%d %T")
+        end
       end
     end
 
@@ -63,8 +65,10 @@ module Go2nix
       end
 
       def self.revision_date(dir, target_rev = current_rev(dir))
-        date = `hg log -r #{range.shellescape} --template '{date|isodate}\n' --limit 1`.chomp
-        DateTime.iso8601(date)
+        Dir.chdir(dir) do
+          date = `hg log -r #{target_rev.shellescape} --template '{date|isodatesec}\n' --limit 1`.chomp
+          DateTime.strptime(date, "%Y-%m-%d %T")
+        end
       end
     end
 
@@ -97,33 +101,37 @@ module Go2nix
       end
 
       def self.revision_date(dir, target_rev = current_rev(dir))
-        log = revision_log(dir)
-        rev_date = log.detect { |rev, date| rev == target_rev }
-        rev_date[1]
+        Dir.chdir(dir) do
+          log = revision_log(dir)
+          rev_date = log.detect { |rev, date| rev == target_rev }
+          rev_date[1]
+        end
       end
 
       private
 
       def self.revision_log(dir)
-        rev_date = nil
-        log = []
+        Dir.chdir(dir) do
+          rev_date = nil
+          log = []
 
-        lines = Dir.chdir(dir) do
-          `bzr log --log-format=long`.split("\n")
-        end
-
-        lines.each do |line|
-          if line.start_with?("revno: ")
-            rev_date = [ line.split(" ")[1], nil ]
-          elsif line.start_with?("timestamp: ")
-            date = line.split(" ", 2).last
-            date = DateTime.strptime(date, DATE_FORMAT)
-            rev_date[1] = date
-            log << rev_date
+          lines = Dir.chdir(dir) do
+            `bzr log --log-format=long`.split("\n")
           end
-        end
 
-        log
+          lines.each do |line|
+            if line.start_with?("revno: ")
+              rev_date = [ line.split(" ")[1], nil ]
+            elsif line.start_with?("timestamp: ")
+              date = line.split(" ", 2).last
+              date = DateTime.strptime(date, DATE_FORMAT)
+              rev_date[1] = date
+              log << rev_date
+            end
+          end
+
+          log
+        end
       end
 
     end
