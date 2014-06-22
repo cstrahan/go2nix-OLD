@@ -39,8 +39,9 @@ module Go2nix
 
       def self.find_revision(dir, til)
         time = til.strftime("%Y-%m-%d %T")
+        range = "sort(date('<#{time}'), -rev)"
         Dir.chdir(dir) do
-          `hg log -r \"sort(date('<#{time.shellescape}'), -rev)\" --template '{rev}\n' --limit 1`.chomp
+          `hg log -r #{range.shellescape} --template '{rev}\n' --limit 1`.chomp
         end
       end
 

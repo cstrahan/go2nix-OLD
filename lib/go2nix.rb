@@ -50,6 +50,7 @@ module Go2nix
       deps << repo_root.root
     end
 
-    deps.uniq!.sort!
+    deps.uniq!
+    deps.sort!
   end
 end

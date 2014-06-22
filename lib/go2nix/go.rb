@@ -113,7 +113,8 @@ module Go2nix
           all.concat(pkg.test_imports)
           all.concat(pkg.xtest_imports)
         end
-        all.uniq!.sort!
+        all.uniq!
+        all.sort!
       end
 
       def all_imports
@@ -121,7 +122,8 @@ module Go2nix
         all.concat(deps)
         all.concat(test_imports)
         all.concat(xtest_imports)
-        all.uniq!.sort!
+        all.uniq!
+        all.sort!
       end
 
       def standard?
