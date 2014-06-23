@@ -29,6 +29,7 @@ else
   gopath = Dir.mktmpdir
   revs = Go2nix.snapshot(gopath, opts.til, [opts.package])
 end
+revs = revs.sort_by { |rev| rev.root }
 
 if opts.out_json
   File.open(opts.out_json, "w") do |f|

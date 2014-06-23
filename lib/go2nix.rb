@@ -3,21 +3,26 @@ require 'go2nix/revision'
 require 'go2nix/vcs'
 require 'erubis'
 require 'go2nix/nix'
+require 'set'
 
 module Go2nix
   TEMPLATE_PATH = File.expand_path("../nix.erb", __FILE__)
 
-  def self.snapshot(gopath, til, imports, revs=[])
+  def self.snapshot(gopath, til, imports, revs=[], processed_imports=Set.new)
     imports.each do |import|
       next if Go::Package.standard?(import)
 
-      repo_root = Go::RepoRoot.from_import(import) rescue nil
+      repo_root = Go::RepoRoot.from_import(import)
       vcs = repo_root.vcs
       root = repo_root.root
       repo = repo_root.repo
       src = File.join(gopath, "src", root)
 
-      next if File.directory?(src)
+      if processed_imports.include?(import)
+        next
+      else
+        processed_imports << import
+      end
 
       puts root
 
@@ -51,7 +56,7 @@ module Go2nix
         :deps => deps
       )
 
-      snapshot(gopath, til, new_imports, revs)
+      snapshot(gopath, til, deps, revs, processed_imports)
     end
 
     revs
