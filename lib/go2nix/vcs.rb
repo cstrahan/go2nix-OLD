@@ -8,12 +8,14 @@ module Go2nix
     end
 
     module Git
+      DATE_FORMAT = "%Y-%m-%d %T %z"
+
       def self.cmd
         "git"
       end
 
       def self.find_revision(dir, til)
-        time = til.strftime("%Y-%m-%d %T")
+        time = til.strftime(DATE_FORMAT)
         Dir.chdir(dir) do
           `git log --until #{time.shellescape} --pretty=format:'%H' -n1`.chomp
         end
@@ -34,18 +36,20 @@ module Go2nix
       def self.revision_date(dir, target_rev = current_rev(dir))
         Dir.chdir(dir) do
           date = `git log #{target_rev.shellescape} -n1 --format="%ad" --date=iso`.chomp
-          DateTime.strptime(date, "%Y-%m-%d %T")
+          DateTime.strptime(date, DATE_FORMAT)
         end
       end
     end
 
     module Mercurial
+      DATE_FORMAT = "%Y-%m-%d %T %z"
+
       def self.cmd
         "hg"
       end
 
       def self.find_revision(dir, til)
-        time = til.strftime("%Y-%m-%d %T")
+        time = til.strftime(DATE_FORMAT)
         range = "sort(date('<#{time}'), -rev)"
         Dir.chdir(dir) do
           `hg log -r #{range.shellescape} --template '{rev}\n' --limit 1`.chomp
@@ -67,7 +71,7 @@ module Go2nix
       def self.revision_date(dir, target_rev = current_rev(dir))
         Dir.chdir(dir) do
           date = `hg log -r #{target_rev.shellescape} --template '{date|isodatesec}\n' --limit 1`.chomp
-          DateTime.strptime(date, "%Y-%m-%d %T")
+          DateTime.strptime(date, DATE_FORMAT)
         end
       end
     end
