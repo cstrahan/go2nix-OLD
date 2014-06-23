@@ -71,13 +71,13 @@ module Go2nix
       new.render(revisions)
     end
 
-    private
-
     def render(revisions)
       template = File.open(TEMPLATE_PATH, &:read)
       renderer = Erubis::Eruby.new(template)
       renderer.result(binding)
     end
+
+    private
 
     def sha256(rev)
       if rev.root.start_with?("github.com")

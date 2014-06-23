@@ -12,29 +12,27 @@ opts = OptParser.parse(ARGV)
 
 if opts.til == :auto && opts.revision != nil
   opts.til = Go2nix::Go::Package.date_of_revision(opts.package, opts.revision)
-  puts opts.til
 end
 
-exit 0
-# FileUtils.mkdir("dump")
-# run
+if opts.in_json
+  json = JSON.parse(json, :symbolize_names => true)
+  revs = json.map {|j| Go2nix::Revision.new(j)}
+else
+  gopath = Dir.mktmpdir
+  revs = Go2nix.snapshot(gopath, opts.til, [opts.package])
+end
 
-til = DateTime.iso8601("2014-05-03T00:00:00Z")
-# til = nil
+if opts.out_json
+  File.open(opts.out_json, "w") do |f|
+    json = revs.map(&:as_json)
+    json = JSON.pretty_generate(json)
+    f.write(json)
+  end
+end
 
-pkg = ["github.com/mitchellh/packer"]
-# pkg = ["code.google.com/p/gosshold"]
-# pkg = ["code.google.com/p/google-api-go-client"]
-# pkg = ["launchpad.net/tomb"]
-# revs = Go2nix.snapshot("dump", til, pkg)
-# revs = revs.map(&:as_json)
-# json = JSON.pretty_generate(revs)
-# puts json
-
-
-# -----------------
-
-json = File.open("dump.json", &:read)
-json = JSON.parse(json, :symbolize_names => true)
-revs = json.map {|j| Go2nix::Revision.new(j)}
-puts Go2nix.render_nix(revs)
+if opts.out_nix
+  File.open(opts.out_nix, "w") do |f|
+    nix = Go2nix.render_nix(revs)
+    f.write(nix)
+  end
+end

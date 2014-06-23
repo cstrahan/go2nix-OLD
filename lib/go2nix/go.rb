@@ -45,6 +45,7 @@ module Go2nix
       attr_reader :test_imports
       attr_reader :xtest_go_files
       attr_reader :xtest_imports
+      attr_reader :error
 
       ATTR_MAPPINGS = %w{
         doc              Doc
@@ -92,9 +93,9 @@ module Go2nix
 
         all = []
         Yajl::Parser.parse(json) do |obj|
-          if !obj["Error"].nil?
-            raise obj["Error"]["Err"]
-          end
+          #if !obj["Error"].nil?
+          #  raise obj["Error"]["Err"]
+          #end
           all << from_json(obj)
         end
 
@@ -107,7 +108,15 @@ module Go2nix
           pkg.send("instance_variable_set", "@#{rb}", json[go]) if json[go]
         end
 
+        if json["Error"]
+          pkg.send("instance_variable_set", "@error", json["Error"]["Err"])
+        end
+
         pkg
+      end
+
+      def error?
+        !!error
       end
 
       def self.standard?(import)

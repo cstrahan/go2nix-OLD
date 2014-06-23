@@ -35,6 +35,21 @@ class OptParser
         end
       end
 
+      opts.on("--in-json PATH",
+              "Use an existing dependency dump") do |path|
+        options.in_json = path
+      end
+
+      opts.on("--out-json PATH",
+              "The path to store the json dependency dump") do |path|
+        options.out_json = path
+      end
+
+      opts.on("--out-nix PATH",
+              "The path to store the rendered nix expression") do |path|
+        options.out_nix = path
+      end
+
       opts.on("--rev REVISION",
               "The revision to fetch") do |revision|
         options.revision = revision
