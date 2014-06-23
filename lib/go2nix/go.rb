@@ -83,7 +83,7 @@ module Go2nix
           repo_root = RepoRoot.from_import(import)
 
           src = File.join(dir, "src", repo_root.root)
-          repo_root.vcs.revision_date(src)
+          repo_root.vcs.revision_date(src, revision)
         end
       end
 

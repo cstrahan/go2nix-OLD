@@ -20,14 +20,21 @@ module Go2nix
       next if File.directory?(src)
 
       puts root
+
       system("GOPATH=#{gopath.shellescape} go get #{import.shellescape} 2>/dev/null")
 
+      rev = nil
       if til.nil?
         rev = vcs.current_rev(src)
       else
         rev = vcs.find_revision(src, til)
         vcs.tag_sync(src, rev)
       end
+      date = vcs.revision_date(src, rev)
+
+      puts "   rev:  #{rev}"
+      puts "  date:  #{date}"
+      puts ""
 
       doc = Go::Package.from_import(gopath, root).first.doc
       pkgs = Go::Package.from_import(gopath, "#{root}...")

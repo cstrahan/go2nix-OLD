@@ -11,7 +11,15 @@ require 'opt_parser'
 opts = OptParser.parse(ARGV)
 
 if opts.til == :auto && opts.revision != nil
-  opts.til = Go2nix::Go::Package.date_of_revision(opts.package, opts.revision)
+  date = Go2nix::Go::Package.date_of_revision(opts.package, opts.revision)
+  one_second = Rational(1, 60 * 60 * 24)
+  opts.til = date + one_second # round up to account for lack of precision
+
+  puts "Fetching sources up to #{opts.til} (from revision #{opts.revision})."
+elsif opts.til
+  puts "Fetching sources up to #{opts.til}."
+else
+  puts "Fetching latest sources."
 end
 
 if opts.in_json
