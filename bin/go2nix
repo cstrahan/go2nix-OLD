@@ -23,6 +23,7 @@ else
 end
 
 if opts.in_json
+  json = File.open(opts.in_json, &:read)
   json = JSON.parse(json, :symbolize_names => true)
   revs = json.map {|j| Go2nix::Revision.new(j)}
 else

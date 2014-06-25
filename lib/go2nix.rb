@@ -79,17 +79,41 @@ module Go2nix
   end
 
   class NixRenderer
+    attr_reader :revisions
+
     def self.render(revisions)
-      new.render(revisions)
+      new(revisions).render
     end
 
-    def render(revisions)
+    def initialize(revisions)
+      @revisions = revisions
+    end
+
+    def render
       template = File.open(TEMPLATE_PATH, &:read)
       renderer = Erubis::Eruby.new(template)
       renderer.result(binding)
     end
 
     private
+
+    def fetchers
+      fetchers = []
+      if revisions.any? {|rev| rev.root.start_with?("github.com") }
+        fetchers << "fetchFromGitHub"
+      end
+      if revisions.any? {|rev| rev.vcs == "git" && !rev.root.start_with?("github.com") }
+        fetchers << "fetchgit"
+      end
+      if revisions.any? {|rev| rev.vcs == "hg" }
+        fetchers << "fetchhg"
+      end
+      if revisions.any? {|rev| rev.vcs == "bzr" }
+        fetchers << "fetchbzr"
+      end
+
+      fetchers
+    end
 
     def sha256(rev)
       if rev.root.start_with?("github.com")

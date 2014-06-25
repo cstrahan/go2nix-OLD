@@ -1,4 +1,4 @@
-{ stdenv, lib, fetchgit, fetchhg, fetchbzr, fetchFromGitHub }:
+{ stdenv, lib, <%= fetchers.join(", ") %> }:
 
 let
   goDeps = [
