@@ -21,13 +21,13 @@ let
       <% elsif revision.vcs == "hg" %>
       src = fetchhg {
         url = "http://<%= revision.root %>";
-        tag = "<%= revision.rev %>";
+        rev = "<%= revision.rev %>";
         sha256 = "<%= sha256(revision) %>";
       };
       <% elsif revision.vcs == "bzr" %>
       src = fetchbzr {
         url = "https://<%= revision.root %>";
-        revision = "<%= revision.rev %>";
+        rev = "<%= revision.rev %>";
         sha256 = "<%= sha256(revision) %>";
       };
       <% end %>
