@@ -6,11 +6,15 @@ This utility generates nix package expressions for a given go project.
 
 This will create a `deps.nix` file for the `ngrok` program, recursively
 finding all of its dependencies, where each revisions was made on or
-before the date of the given revision (b7d5571aa, which is the 1.7
+before the date of the given revision (`b7d5571aa`, which is the 1.7
 release of `ngrok`):
 
 ``` bash
-go2nix --until auto --rev b7d5571aa7f12ac304b8f8286b855cc64dd9bab8 --tags release --pkg github.com/inconshreveable/ngrok --out-nix deps.nix
+go2nix --until auto \
+       --rev b7d5571aa7f12ac304b8f8286b855cc64dd9bab8 \
+       --tags release \
+       --pkg github.com/inconshreveable/ngrok \
+       --out-nix deps.nix
 ```
 
 # Usage
