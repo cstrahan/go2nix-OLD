@@ -15,19 +15,19 @@ let
       };
       <% elsif revision.vcs == "git" %>
       src = fetchgit {
-        url = "git://<%= revision.root %>.git";
+        url = "<%= revision.repo %>";
         rev = "<%= revision.rev %>";
         sha256 = "<%= sha256(revision) %>";
       };
       <% elsif revision.vcs == "hg" %>
       src = fetchhg {
-        url = "http://<%= revision.root %>";
+        url = "<%= revision.repo %>";
         rev = "<%= revision.rev %>";
         sha256 = "<%= sha256(revision) %>";
       };
       <% elsif revision.vcs == "bzr" %>
       src = fetchbzr {
-        url = "https://<%= revision.root %>";
+        url = "<%= revision.repo %>";
         rev = "<%= revision.rev %>";
         sha256 = "<%= sha256(revision) %>";
       };

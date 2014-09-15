@@ -1,6 +1,7 @@
 module Go2nix
   class Revision
     attr_reader :root
+    attr_reader :repo
     attr_reader :rev
     attr_reader :vcs
     attr_reader :deps

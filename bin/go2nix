@@ -28,7 +28,7 @@ if opts.in_json
   revs = json.map {|j| Go2nix::Revision.new(j)}
 else
   gopath = Dir.mktmpdir
-  revs = Go2nix.snapshot(gopath, opts.til, [opts.package])
+  revs = Go2nix.snapshot(gopath, opts.tags, opts.til, [opts.package])
 end
 revs = revs.sort_by { |rev| rev.root }
 

@@ -1,6 +1,7 @@
 require 'yajl'
 require 'stringio'
 require 'tmpdir'
+require 'set'
 
 module Go2nix
   module Go
@@ -14,7 +15,8 @@ module Go2nix
       def self.from_import(import)
         json = `#{GO_REPO_ROOT_PATH.shellescape} --import-path #{import.shellescape} 2>&1`
         if !$?.success?
-          raise json
+          #raise json
+          return nil
         end
         json = Yajl::Parser.parse(json)
 
@@ -78,24 +80,35 @@ module Go2nix
       end
 
       def self.date_of_revision(import, revision)
-        Dir.mktmpdir do |dir|
-          system "GOPATH=#{dir.shellescape} go get #{import.shellescape} 2>/dev/null"
-          repo_root = RepoRoot.from_import(import)
+        result = nil
 
-          src = File.join(dir, "src", repo_root.root)
-          repo_root.vcs.revision_date(src, revision)
+        # Dir.mktmpdir fails here... Why? Who knows.
+        #
+        #   ruby-2.1.0/lib/ruby/2.1.0/fileutils.rb:1454:in `unlink': No such file or directory @ unlink_internal - /var/folders/ll/jzfpr6bj6px5ln438v15ngk80000gn/T/d20140915-5342-1ref4ru/src/github.com/inconshreveable/ngrok/.git/tags.5353 (Errno::ENOENT)
+        #
+        # Oddly, just putting Dir.mktmpdir between begin..end prevents the
+        # error. WTF.
+        begin
+          Dir.mktmpdir do |dir|
+            system "GOPATH=#{dir.shellescape} go get #{import.shellescape} 2>/dev/null"
+            repo_root = RepoRoot.from_import(import)
+
+            src = File.join(dir, "src", repo_root.root)
+            result = repo_root.vcs.revision_date(src, revision)
+          end
+        rescue Errno::ENOENT => ex
+          puts "XXX"
         end
+
+        result
       end
 
-      def self.from_import(gopath, import)
-        json = `GOPATH=#{gopath.shellescape} go list -e -json #{import.shellescape}`
+      def self.from_import(gopath, import, tags)
+        json = `GOPATH=#{gopath.shellescape} go list -tags #{tags.join(" ").shellescape} -e -json #{import.shellescape}`
         json = StringIO.new(json)
 
         all = []
         Yajl::Parser.parse(json) do |obj|
-          #if !obj["Error"].nil?
-          #  raise obj["Error"]["Err"]
-          #end
           all << from_json(obj)
         end
 
@@ -120,12 +133,15 @@ module Go2nix
       end
 
       def self.standard?(import)
+        @standard_imports ||= Set.new(`go list std`.split("\n"))
+        @standard_imports.include?(import)
+        #
         #json = `go list -e -json #{import.shellescape}`
         #return false unless $?.success?
 
         #json = JSON.parse(json)
         #json["Standard"]
-        return !(/^(github\.com|code\.google\.com|((bazaar|code)\.)?launchpad\.net)/ =~ import)
+        #return !(/^(gopkg\.in|github\.com|code\.google\.com|((bazaar|code)\.)?launchpad\.net)/ =~ import)
       end
 
       def self.all_imports(pkgs)

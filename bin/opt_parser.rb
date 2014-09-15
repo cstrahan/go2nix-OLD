@@ -5,6 +5,7 @@ require 'ostruct'
 class OptParser
   def self.parse(args)
     options = OpenStruct.new
+    options.tags = []
     parser(options).parse!(args)
     options
   end
@@ -33,6 +34,11 @@ class OptParser
           end
           options.til = til
         end
+      end
+
+      opts.on("--tags TAGS",
+              "Whitespace separated ist of build tags") do |tags|
+        options.tags = tags.split(" ").reject(&:empty?)
       end
 
       opts.on("--in-json PATH",

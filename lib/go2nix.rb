@@ -8,11 +8,13 @@ require 'set'
 module Go2nix
   TEMPLATE_PATH = File.expand_path("../nix.erb", __FILE__)
 
-  def self.snapshot(gopath, til, imports, revs=[], processed_imports=Set.new)
+  def self.snapshot(gopath, tags, til, imports, revs=[], processed_imports=Set.new)
     imports.each do |import|
       next if Go::Package.standard?(import)
 
       repo_root = Go::RepoRoot.from_import(import)
+      next if repo_root.nil?
+
       vcs = repo_root.vcs
       root = repo_root.root
       repo = repo_root.repo
@@ -41,8 +43,8 @@ module Go2nix
       puts "  date:  #{date}"
       puts ""
 
-      doc = Go::Package.from_import(gopath, root).first.doc
-      pkgs = Go::Package.from_import(gopath, "#{root}...")
+      doc = Go::Package.from_import(gopath, root, tags).first.doc
+      pkgs = Go::Package.from_import(gopath, "#{root}...", tags)
       new_imports = Go::Package.all_imports(pkgs)
       deps = deps_from_imports(new_imports)
       deps.delete(root)
@@ -56,7 +58,7 @@ module Go2nix
         :deps => deps
       )
 
-      snapshot(gopath, til, deps, revs, processed_imports)
+      snapshot(gopath, tags, til, deps, revs, processed_imports)
     end
 
     revs
@@ -67,6 +69,7 @@ module Go2nix
     imports.each do |import|
       next if Go::Package.standard?(import)
       repo_root = Go::RepoRoot.from_import(import)
+      next if repo_root.nil?
       deps << repo_root.root
     end
 
@@ -97,6 +100,10 @@ module Go2nix
 
     private
 
+    def usesGit?
+      revisions.any? {|rev| rev.vcs == "git" && !rev.root.start_with?("github.com") }
+    end
+
     def fetchers
       fetchers = []
       if revisions.any? {|rev| rev.root.start_with?("github.com") }
@@ -119,11 +126,11 @@ module Go2nix
       if rev.root.start_with?("github.com")
         Nix.prefetch_github(owner(rev), repo(rev), rev.rev)
       elsif rev.vcs == "git"
-        Nix.prefetch_git("git://"+rev.root+".git", rev.rev)
+        Nix.prefetch_git(rev.repo, rev.rev)
       elsif rev.vcs == "hg"
-        Nix.prefetch_hg("http://"+rev.root, rev.rev)
+        Nix.prefetch_hg(rev.repo, rev.rev)
       elsif rev.vcs == "bzr"
-        Nix.prefetch_bzr("http://code."+rev.root, rev.rev)
+        Nix.prefetch_bzr(rev.repo, rev.rev)
       end
     end
 
