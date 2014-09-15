@@ -118,6 +118,8 @@ module Go2nix
     def sha256(rev)
       if rev.root.start_with?("github.com")
         Nix.prefetch_github(owner(rev), repo(rev), rev.rev)
+      elsif rev.vcs == "git"
+        Nix.prefetch_git("git://"+rev.root+".git", rev.rev)
       elsif rev.vcs == "hg"
         Nix.prefetch_hg("http://"+rev.root, rev.rev)
       elsif rev.vcs == "bzr"
