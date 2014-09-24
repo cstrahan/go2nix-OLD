@@ -17,14 +17,14 @@ stdenv.mkDerivation {
 
     mv $out/bin/{,.}go2nix
     cat <<EOF > $out/bin/go2nix
-#!/bin/sh
-export PATH=${lib.makeSearchPath "bin" [ ruby go go-repo-root git mercurial bazaar subversion ]}:$PATH
-export GIT_SSL_CAINFO="${cacert}/etc/ca-bundle.crt"
-export RUBYOPT=rubygems
-export GEM_PATH=${lib.makeSearchPath ruby.gemPath (with rubyLibs; [ yajl_ruby erubis ])}
+    #!/bin/sh
+    export PATH=${lib.makeSearchPath "bin" [ ruby go go-repo-root git mercurial bazaar subversion ]}:$PATH
+    export GIT_SSL_CAINFO="${cacert}/etc/ca-bundle.crt"
+    export RUBYOPT=rubygems
+    export GEM_PATH=${lib.makeSearchPath ruby.gemPath (with rubyLibs; [ yajl_ruby erubis ])}
 
-ruby $out/bin/.go2nix "\$@"
-EOF
+    ruby $out/bin/.go2nix "\$@"
+    EOF
     chmod +x $out/bin/go2nix
   '';
 }
