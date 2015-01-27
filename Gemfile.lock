@@ -1,0 +1,18 @@
+PATH
+  remote: .
+  specs:
+    go2nix (0.0.1)
+      erubis (~> 2.7.0)
+      yajl-ruby (~> 1.2.1)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    erubis (2.7.0)
+    yajl-ruby (1.2.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  go2nix!

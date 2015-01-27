@@ -97,7 +97,7 @@ module Go2nix
             result = repo_root.vcs.revision_date(src, revision)
           end
         rescue Errno::ENOENT => ex
-          puts "XXX"
+          puts "UH-OH! THIS SHOULD NEVER HAPPEN!"
         end
 
         result

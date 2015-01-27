@@ -1,8 +1,10 @@
+require 'go2nix/nix'
 require 'go2nix/go'
+require 'go2nix/opt_parser'
 require 'go2nix/revision'
 require 'go2nix/vcs'
+
 require 'erubis'
-require 'go2nix/nix'
 require 'set'
 
 module Go2nix
