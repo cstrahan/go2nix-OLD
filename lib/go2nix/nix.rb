@@ -9,7 +9,7 @@ module Go2nix
     end
 
     def self.prefetch_git(repo, rev)
-      `GIT_SSL_NO_VERIFY=true hashFormat="--base32" nix-prefetch-git #{repo.shellescape} #{rev.shellescape} 2>/dev/null`.split("\n")[2]
+      `hashFormat="--base32" nix-prefetch-git #{repo.shellescape} #{rev.shellescape} 2>/dev/null`.split("\n")[-1]
     end
 
     def self.prefetch_hg(repo, rev)
