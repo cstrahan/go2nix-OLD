@@ -1,8 +1,5 @@
 #!/usr/bin/env ruby
 
-$: << File.expand_path("../../lib", __FILE__)
-$: << File.expand_path("../../bin", __FILE__)
-
 require 'go2nix'
 require 'json'
 require 'fileutils'
