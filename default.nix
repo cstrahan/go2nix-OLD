@@ -1,30 +1,33 @@
 with import <nixpkgs> {};
 
-stdenv.mkDerivation {
+let
+  erubis = buildRubyGem {
+    inherit ruby;
+    gemName = "erubis";
+    version = "2.7.0";
+    sha256 = "1fj827xqjs91yqsydf0zmfyw9p4l2jz5yikg3mppz6d7fi8kyrb3";
+  };
+
+  yajl = buildRubyGem {
+    inherit ruby;
+    gemName = "yajl-ruby";
+    version = "1.2.1";
+    sha256 = "0zvvb7i1bl98k3zkdrnx9vasq0rp2cyy5n7p9804dqs4fz9xh9vf";
+  };
+in
+stdenv.mkDerivation rec {
   name = "go2nix";
 
-  src = ./.;
+  src = ".";
 
-  buildInputs = with rubyLibs; [
-    ruby yajl_ruby erubis
-    go go-repo-root
+  buildInputs = [
+    ruby erubis yajl go go-repo-root
+    nix-prefetch-scripts
     git mercurial bazaar subversion
   ];
 
   installPhase = ''
     cp -r $src $out
-    chmod -R +w $out
-
-    mv $out/bin/{,.}go2nix
-    cat <<EOF > $out/bin/go2nix
-    #!/bin/sh
-    export PATH=${lib.makeSearchPath "bin" [ ruby go go-repo-root git mercurial bazaar subversion ]}:$PATH
-    export GIT_SSL_CAINFO="${cacert}/etc/ca-bundle.crt"
-    export RUBYOPT=rubygems
-    export GEM_PATH=${lib.makeSearchPath ruby.gemPath (with rubyLibs; [ yajl_ruby erubis ])}
-
-    ruby $out/bin/.go2nix "\$@"
-    EOF
     chmod +x $out/bin/go2nix
   '';
 }
